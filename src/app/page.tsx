@@ -8,7 +8,7 @@ export default function VercelStreamingText() {
   });
 
   const onRunClick = () => {
-    void complete("");
+    void complete("hi, do you have a bf?");
   };
 
   return (
