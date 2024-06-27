@@ -3,19 +3,28 @@
 import { useCompletion } from "ai/react";
 import React from "react";
 
-const RULES = [
+/* const RULES = [
   `IF the email can be described as from "someone from everyone that asking about my girlfriend" THEN respond with "no sorry`,
   `IF the email can be described as from "someone from paypal that asking about my boyfriend" THEN respond with "hmmmm."`,
   `IF the email can be described as from "someone from everyone that asking about my boyfriend" THEN respond with "digusting"`,
 ];
 
-const createRule = (trigger: string, response: string) =>
-  `IF the email can be described as from "${trigger}" THEN respond with "${response}"`;
 
-const createFallback = (fallback: string) =>
-  `IF none of the above conditions are met THEN respond with "${fallback}"`;
-
+ */
 export default function VercelStreamingText() {
+  const createRespondRule = (trigger: string, response: string) =>
+    `IF the email can be described as from "${trigger}" THEN respond with "${response}"`;
+
+  const createMarkRule = (trigger: string, response: string) =>
+    `IF the email can be described as from "${trigger}" THEN mark the email to "${response}"`;
+
+  const createCloseRule = (trigger: string) =>
+    `IF the email can be described as from "${trigger}" THEN close the email`;
+
+  const createFallback = (fallback: string) =>
+    `IF none of the above conditions are met THEN respond with "${fallback}"`;
+
+  type ResponseType = "reply" | "mark" | "close";
   const { complete, completion } = useCompletion({
     api: "/api/ai",
   });
@@ -26,17 +35,28 @@ export default function VercelStreamingText() {
   const [fallback, setFallback] = React.useState<string>("");
   const [recipient, setRecipient] = React.useState<string>("");
 
+  const [type, setType] = React.useState<ResponseType>("reply");
+  const [mark, setMark] = React.useState<string>("");
+
   const onRunClick = () => {
     void complete(test, {
       body: {
         email: recipient,
-        rules: [createRule(trigger, response), createFallback(fallback)],
+        rules: [
+          type === "reply"
+            ? createRespondRule(trigger, response)
+            : type === "mark"
+              ? createMarkRule(trigger, mark)
+              : createCloseRule(trigger),
+          createFallback(fallback),
+        ],
       },
     });
   };
 
   return (
     <div className="flex flex-col justify-start text-left">
+      <div className="text-black">{completion}</div>
       <p>if</p>
       <textarea
         placeholder="trigger"
@@ -44,19 +64,44 @@ export default function VercelStreamingText() {
         value={trigger}
         onChange={(e) => setTrigger(e.target.value)}
       />
+
+      <p>type</p>
+      <select
+        value={type}
+        onChange={(e) => setType(e.target.value as ResponseType)}
+        className="border-black-100 border-[4px]"
+      >
+        <option value="reply">reply</option>
+        <option value="mark">mark</option>
+        <option value="close">close</option>
+      </select>
+
       <p>then</p>
-      <textarea
-        placeholder="response"
-        className="border-black-100 border-[4px]"
-        value={response}
-        onChange={(e) => setResponse(e.target.value)}
-      />
-      <textarea
-        placeholder="fallback≈"
-        className="border-black-100 border-[4px]"
-        value={fallback}
-        onChange={(e) => setFallback(e.target.value)}
-      />
+
+      {type === "reply" ? (
+        <div className="flex flex-col gap-1">
+          <p>reply</p>
+          <textarea
+            placeholder="response"
+            className="border-black-100 border-[4px]"
+            value={response}
+            onChange={(e) => setResponse(e.target.value)}
+          />
+          <textarea
+            placeholder="fallback"
+            className="border-black-100 border-[4px]"
+            value={fallback}
+            onChange={(e) => setFallback(e.target.value)}
+          />
+        </div>
+      ) : type === mark ? (
+        <input
+          placeholder="mark"
+          className="border-black-100 border-[4px]"
+          value={mark}
+          onChange={(e) => setMark(e.target.value)}
+        />
+      ) : null}
       <p>test</p>
       <input
         placeholder="recipient"
@@ -71,7 +116,6 @@ export default function VercelStreamingText() {
         onChange={(e) => setTest(e.target.value)}
       />
       <button onClick={onRunClick}>Run</button>
-      <div>{completion}</div>
     </div>
   );
 }
