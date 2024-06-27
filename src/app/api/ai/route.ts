@@ -1,7 +1,8 @@
 import { env } from "@/env";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { streamObject, streamText, StreamingTextResponse } from "ai";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 export const runtime = "edge";
 
@@ -30,13 +31,28 @@ export async function POST(req: Request) {
 
   console.log(PROMPT);
 
-  const result = await streamText({
+  const result = await streamObject({
+    model: openai("gpt-4-turbo"),
+    schema: z.object({
+      response: z.object({
+        content: z.string(),
+        isClose: z.boolean().default(false),
+        markAs: z.string().optional(),
+      }),
+    }),
+    system: PROMPT,
+    prompt: `Here's the email content: ${prompt}, sent from ${email} email address`,
+  });
+
+  return new StreamingTextResponse(result.textStream);
+
+  /*   const result = await streamText({
     model: openai("gpt-4-turbo"),
     system: PROMPT,
     prompt: `Here's the email content: ${prompt}, sent from ${email} email address`,
   });
 
-  return result.toTextStreamResponse();
+  return result.toAIStreamResponse(); */
 }
 
 export async function GET(req: Request) {

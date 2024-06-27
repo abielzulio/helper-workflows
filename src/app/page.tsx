@@ -16,10 +16,10 @@ export default function VercelStreamingText() {
     `IF the email can be described as from "${trigger}" THEN respond with "${response}"`;
 
   const createMarkRule = (trigger: string, response: string) =>
-    `IF the email can be described as from "${trigger}" THEN mark the email to "${response}"`;
+    `IF the email can be described as from "${trigger}" THEN mark the email to "${response}", ELSE don't mark the email to anything else and continue to the next rule if exists`;
 
   const createCloseRule = (trigger: string) =>
-    `IF the email can be described as from "${trigger}" THEN close the email`;
+    `IF the email can be described as from "${trigger}" THEN close the email, ELSE then don't close the email and continue to the next rule if exiest`;
 
   const createFallback = (fallback: string) =>
     `IF none of the above conditions are met THEN respond with "${fallback}"`;
@@ -94,7 +94,7 @@ export default function VercelStreamingText() {
             onChange={(e) => setFallback(e.target.value)}
           />
         </div>
-      ) : type === mark ? (
+      ) : type === "mark" ? (
         <input
           placeholder="mark"
           className="border-black-100 border-[4px]"
