@@ -24,16 +24,18 @@ export async function POST(req: Request) {
     `IF none of the above conditions are met THEN respond with ${DEFAULT_REPLY}`,
   ];
 
-  const { prompt, email } = (await req.json()) as {
+  const { prompt, email, rules } = (await req.json()) as {
     prompt: string;
     email: string;
+    rules: string[];
   };
 
   const PROMPT =
     BASE_PROMPT +
     INITIAL_WORKFLOW +
     ("\n" + "<rules>" + "\n") +
-    WORKFLOW_PROMPTS.map((p, i) => `Rule ${i + 1}: ${p}`).join("\n") +
+    rules.map((p, i) => `Rule ${i + 1}: ${p}`).join("\n") +
+    /*     WORKFLOW_PROMPTS.map((p, i) => `Rule ${i + 1}: ${p}`).join("\n") + */
     ("\n" + "</rules>" + "\n");
 
   console.log(PROMPT);
