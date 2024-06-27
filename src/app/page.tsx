@@ -8,7 +8,9 @@ export default function VercelStreamingText() {
   });
 
   const onRunClick = () => {
-    void complete("hi, do you have a bf?");
+    void complete("hi, do you have a mom?", {
+      body: { email: "alex@google.com" },
+    });
   };
 
   return (
