@@ -107,7 +107,14 @@ export default function VercelStreamingText() {
       <p>type</p>
       <select
         value={type}
-        onChange={(e) => setType(e.target.value as ResponseType)}
+        onChange={(e) => {
+          const type = e.target.value as ResponseType;
+          if (type !== "reply") {
+            setResponse("");
+            setFallback("");
+          }
+          setType(e.target.value as ResponseType);
+        }}
         className="border-black-100 border-[4px]"
       >
         <option value="reply">reply</option>
