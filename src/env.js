@@ -7,11 +7,11 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.string().url(),
+    /*     DATABASE_URL: z.string().url(), */
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    NEXTAUTH_SECRET:
+    /*     NEXTAUTH_SECRET:
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
@@ -21,7 +21,7 @@ export const env = createEnv({
       (str) => process.env.VERCEL_URL ?? str,
       // VERCEL_URL doesn't include `https` so it cant be validated as a URL
       process.env.VERCEL ? z.string() : z.string().url(),
-    ),
+    ), */
     REDIS_URL: z.string().url(),
     REDIS_TOKEN: z.string(),
     OPENAI_API_KEY: z.string(),
@@ -43,10 +43,10 @@ export const env = createEnv({
   runtimeEnv: {
     REDIS_URL: process.env.REDIS_URL,
     REDIS_TOKEN: process.env.REDIS_TOKEN,
-    DATABASE_URL: process.env.DATABASE_URL,
+    /*     DATABASE_URL: process.env.DATABASE_URL, */
     NODE_ENV: process.env.NODE_ENV,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    /*     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL, */
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
   /**
