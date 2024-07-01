@@ -1,7 +1,9 @@
 "use client";
 
-import { useCompletion } from "ai/react";
+import { experimental_useObject, useChat, useCompletion } from "ai/react";
 import React from "react";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 
 /* const RULES = [
   `IF the email can be described as from "someone from everyone that asking about my girlfriend" THEN respond with "no sorry`,
@@ -25,7 +27,22 @@ export default function VercelStreamingText() {
     `IF none of the above conditions are met THEN respond with "${fallback}"`;
 
   type ResponseType = "reply" | "mark" | "close";
-  const { complete, completion } = useCompletion({
+  const { complete, completion, data } = useCompletion({
+    api: "/api/ai",
+  });
+
+  const { object, submit } = experimental_useObject({
+    api: "/api/ai",
+    schema: z.object({
+      response: z.object({
+        content: z.string(),
+        isClose: z.boolean().default(false),
+        markAs: z.string().optional(),
+      }),
+    }),
+  });
+
+  const { messages, append } = useChat({
     api: "/api/ai",
   });
 
@@ -39,24 +56,47 @@ export default function VercelStreamingText() {
   const [mark, setMark] = React.useState<string>("");
 
   const onRunClick = () => {
-    void complete(test, {
-      body: {
-        email: recipient,
-        rules: [
-          type === "reply"
-            ? createRespondRule(trigger, response)
-            : type === "mark"
-              ? createMarkRule(trigger, mark)
-              : createCloseRule(trigger),
-          createFallback(fallback),
-        ],
+    /*     void append(
+      {
+        role: "user",
+        content: test,
       },
-    });
+      {
+        body: {
+          email: recipient,
+          rules: [
+            type === "reply"
+              ? createRespondRule(trigger, response)
+              : type === "mark"
+                ? createMarkRule(trigger, mark)
+                : createCloseRule(trigger),
+            createFallback(fallback),
+          ],
+        },
+      },
+    ); */
+
+    const obj = {
+      id: nanoid(),
+      email: {
+        recipient,
+        content: test,
+      },
+      rules: [
+        type === "reply"
+          ? createRespondRule(trigger, response)
+          : type === "mark"
+            ? createMarkRule(trigger, mark)
+            : createCloseRule(trigger),
+        createFallback(fallback),
+      ],
+    };
+    void submit(JSON.stringify(obj));
+    /*     void complete(test, {body: obj}); */
   };
 
   return (
     <div className="flex flex-col justify-start text-left">
-      <div className="text-black">{completion}</div>
       <p>if</p>
       <textarea
         placeholder="trigger"
@@ -116,6 +156,14 @@ export default function VercelStreamingText() {
         onChange={(e) => setTest(e.target.value)}
       />
       <button onClick={onRunClick}>Run</button>
+      <div className="text-black">
+        {JSON.stringify(
+          data?.map((x) => x),
+          null,
+          2,
+        )}
+      </div>
+      <p>{object?.response?.content}</p>
     </div>
   );
 }
