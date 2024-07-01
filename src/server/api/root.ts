@@ -1,5 +1,24 @@
+import { redis } from "@/libs/redis";
 import { postRouter } from "@/server/api/routers/post";
-import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
+import {
+  createCallerFactory,
+  createTRPCRouter,
+  publicProcedure,
+} from "@/server/api/trpc";
+import { z } from "zod";
+
+const emailRouter = createTRPCRouter({
+  get: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      console.log;
+      const data = await redis.get<string>(input.id);
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        data: data,
+      };
+    }),
+});
 
 /**
  * This is the primary router for your server.
@@ -8,6 +27,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   post: postRouter,
+  email: emailRouter,
 });
 
 // export type definition of API

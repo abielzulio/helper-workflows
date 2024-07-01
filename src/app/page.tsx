@@ -1,24 +1,17 @@
 "use client";
 
-import { experimental_useObject, useChat, useCompletion } from "ai/react";
-import React from "react";
+import { api } from "@/trpc/react";
+import { experimental_useObject } from "ai/react";
 import { nanoid } from "nanoid";
+import React from "react";
 import { z } from "zod";
 
-/* const RULES = [
-  `IF the email can be described as from "someone from everyone that asking about my girlfriend" THEN respond with "no sorry`,
-  `IF the email can be described as from "someone from paypal that asking about my boyfriend" THEN respond with "hmmmm."`,
-  `IF the email can be described as from "someone from everyone that asking about my boyfriend" THEN respond with "digusting"`,
-];
-
-
- */
 export default function VercelStreamingText() {
   const createRespondRule = (trigger: string, response: string) =>
     `IF the email can be described as from "${trigger}" THEN respond with "${response}"`;
 
   const createMarkRule = (trigger: string, response: string) =>
-    `IF the email can be described as from "${trigger}" THEN mark the email to "${response}", ELSE don't mark the email to anything else and continue to the next rule if exists`;
+    `IF the email can be described as from "${trigger}" THEN mark the email ask "${response}", ELSE don't mark the email to anything else and continue to the next rule if exists`;
 
   const createCloseRule = (trigger: string) =>
     `IF the email can be described as from "${trigger}" THEN close the email, ELSE then don't close the email and continue to the next rule if exiest`;
@@ -27,60 +20,67 @@ export default function VercelStreamingText() {
     `IF none of the above conditions are met THEN respond with "${fallback}"`;
 
   type ResponseType = "reply" | "mark" | "close";
-  const { complete, completion, data } = useCompletion({
-    api: "/api/ai",
-  });
 
-  const { object, submit } = experimental_useObject({
+  const { object, submit, isLoading } = experimental_useObject({
     api: "/api/ai",
     schema: z.object({
       response: z.object({
-        content: z.string(),
+        content: z.string().nullish(),
         isClose: z.boolean().default(false),
-        markAs: z.string().optional(),
+        markAs: z.string().nullish(),
       }),
     }),
   });
 
-  const { messages, append } = useChat({
-    api: "/api/ai",
-  });
+  const { mutateAsync } = api.email.get.useMutation();
 
   const [trigger, setTrigger] = React.useState<string>("");
   const [response, setResponse] = React.useState<string>("");
-  const [test, setTest] = React.useState<string>("");
   const [fallback, setFallback] = React.useState<string>("");
+
   const [recipient, setRecipient] = React.useState<string>("");
+  const [content, setContent] = React.useState<string>("");
+
+  const [email, setEmail] = React.useState<{
+    id: string;
+    recipient: string;
+    content: string;
+  }>({ id: "", recipient: "", content: "" });
 
   const [type, setType] = React.useState<ResponseType>("reply");
   const [mark, setMark] = React.useState<string>("");
+  const [test, setTest] = React.useState<string>("");
 
-  const onRunClick = () => {
-    /*     void append(
-      {
-        role: "user",
-        content: test,
-      },
-      {
-        body: {
-          email: recipient,
-          rules: [
-            type === "reply"
-              ? createRespondRule(trigger, response)
-              : type === "mark"
-                ? createMarkRule(trigger, mark)
-                : createCloseRule(trigger),
-            createFallback(fallback),
-          ],
-        },
-      },
-    ); */
+  const loadData = async (id: string) => {
+    const { data } = await mutateAsync({ id });
+    /*     if (!data) return; */
+    console.log("alex", data);
+    setTest(data);
+  };
+
+  React.useEffect(() => {
+    /*     if (!isLoading) return; */
+    if (email.id === "") return;
+
+    void loadData(email.id);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email.id]);
+
+  const onRunClick = async () => {
+    const id = nanoid();
+
+    setEmail({
+      id,
+      recipient,
+      content,
+    });
 
     const obj = {
-      id: nanoid(),
+      id,
       email: {
         recipient,
-        content: test,
+        content,
       },
       rules: [
         type === "reply"
@@ -91,8 +91,7 @@ export default function VercelStreamingText() {
         createFallback(fallback),
       ],
     };
-    void submit(JSON.stringify(obj));
-    /*     void complete(test, {body: obj}); */
+    submit(JSON.stringify(obj));
   };
 
   return (
@@ -152,18 +151,29 @@ export default function VercelStreamingText() {
       <textarea
         placeholder="test email"
         className="border-black-100 border-[4px]"
-        value={test}
-        onChange={(e) => setTest(e.target.value)}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
       />
       <button onClick={onRunClick}>Run</button>
-      <div className="text-black">
-        {JSON.stringify(
-          data?.map((x) => x),
-          null,
-          2,
-        )}
+      <div className="flex w-full flex-col gap-2">
+        <div className="ml-auto flex flex-col">
+          <p className="opacity-50">{email.recipient}</p>
+          <p>{email.content}</p>
+        </div>
+        <div className="mr-auto flex flex-col">
+          {object?.response ? (
+            <>
+              {test === mark ? <p>Marked as {mark}</p> : null}
+              {type === "close" && test === "true" ? <p>Closed</p> : null}
+              <p className="opacity-50">abielzm@gmail.com</p>
+              <p>{object?.response?.content}</p>
+            </>
+          ) : null}
+        </div>
       </div>
-      <p>{object?.response?.content}</p>
+      <div className="text-black">
+        {JSON.stringify(object?.response, null, 2)}
+      </div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { env } from "@/env";
+import { redis } from "@/libs/redis";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamObject, streamText, StreamingTextResponse } from "ai";
+import { streamObject } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { cookies } from "next/headers";
 
 export const runtime = "edge";
 
@@ -33,16 +33,7 @@ export async function POST(req: Request) {
     rules: string[];
   };
 
-  console.log("alex", data);
-
-  const { prompt, email, rules, id } = data;
-
-  /*   console.log("alex", rules);
-
-  console.log(
-    "alex",
-    rules.map((rule) => rule.replace(/"/g, "'")),
-  ); */
+  const { email, rules, id } = data;
 
   const PROMPT =
     BASE_PROMPT +
@@ -57,30 +48,27 @@ export async function POST(req: Request) {
     model: openai("gpt-4-turbo"),
     schema: z.object({
       response: z.object({
-        content: z.string(),
+        content: z.string().nullish(),
         isClose: z.boolean().default(false),
-        markAs: z.string().optional(),
+        markAs: z.string().nullish(),
       }),
     }),
     system: PROMPT,
     prompt: `Here's the email content: ${email.content}, sent from ${email.recipient} email address`,
-    onFinish: (response) => {
-      cookies().set(
-        "next-alex",
-        JSON.stringify({ id: id, data: response.object?.response }),
-      );
+    onFinish: async ({ object }) => {
+      try {
+        if (object?.response.markAs) {
+          await redis.set(id, object?.response.markAs);
+        } else if (object?.response.isClose) {
+          await redis.set(id, "true");
+        }
+      } catch (e) {
+        console.error(e);
+      }
     },
   });
 
   return result.toTextStreamResponse();
-
-  /*   const result = await streamText({
-    model: openai("gpt-4-turbo"),
-    system: PROMPT,
-    prompt: `Here's the email content: ${prompt}, sent from ${email} email address`,
-  });
-
-  return result.toAIStreamResponse(); */
 }
 
 export async function GET(req: Request) {
